@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Biometrics Entry - Premium real-time face recognition and demographics application running entirely in your browser.">
+    <title>Biometrics Entry | Biometric Recognition & Analytics</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Vladmandic Face-API.js CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    
+    <!-- App Script -->
+    <script defer src="app.js"></script>
+</head>
+<body>
+    <!-- Radial glow background elements -->
+    <div class="glow-bg glow-primary"></div>
+    <div class="glow-bg glow-secondary"></div>
+
+    <div class="app-container">
+        <!-- Main Header -->
+        <header class="app-header">
+            <div class="brand-logo">
+                <i class="fa-solid fa-face-viewfinder logo-icon"></i>
+                <div class="brand-text">
+                    <h1>BIOMETRICS<span>ENTRY</span></h1>
+                    <p>Secure Face Recognition & Demographics</p>
+                </div>
+            </div>
+            <div class="system-status" id="system-status-indicator">
+                <span class="status-dot status-loading"></span>
+                <span class="status-text">Loading Neural Models...</span>
+            </div>
+        </header>
+
+        <!-- Loading / Progress Overlay -->
+        <div class="modal-overlay" id="loading-overlay">
+            <div class="loading-card">
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+                    <i class="fa-solid fa-shield-halved spinner-icon"></i>
+                </div>
+                <h2>Initializing Biometrics Entry Systems</h2>
+                <p class="loading-subtitle">Setting up secure client-side environment</p>
+                
+                <ul class="loading-steps">
+                    <li id="step-library" class="step-active"><i class="fa-solid fa-circle-notch fa-spin step-icon"></i> Loading TensorFlow & Face-API</li>
+                    <li id="step-detector" class="step-pending"><i class="fa-regular fa-circle step-icon"></i> Neural Net: Face Detector</li>
+                    <li id="step-landmarks" class="step-pending"><i class="fa-regular fa-circle step-icon"></i> Neural Net: Facial Landmarks</li>
+                    <li id="step-recognizer" class="step-pending"><i class="fa-regular fa-circle step-icon"></i> Neural Net: Descriptor Extractor</li>
+                    <li id="step-age" class="step-pending"><i class="fa-regular fa-circle step-icon"></i> Neural Net: Age Estimator</li>
+                    <li id="step-camera" class="step-pending"><i class="fa-regular fa-circle step-icon"></i> Establishing Video Stream</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <main class="app-workspace">
+            <!-- Left Panel: Webcam Feed -->
+            <section class="viewport-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-video text-primary"></i>
+                        <h2>Live Biometric Viewport</h2>
+                    </div>
+                    <div class="fps-counter" id="fps-display">0 FPS</div>
+                </div>
+                
+                <div class="video-container">
+                    <video id="webcam" autoplay muted playsinline></video>
+                    <canvas id="overlay-canvas"></canvas>
+                    
+                    <!-- Scan line effect -->
+                    <div class="scan-line" id="scan-line"></div>
+                    
+                    <!-- Corner brackets overlay -->
+                    <div class="corner-bracket top-left"></div>
+                    <div class="corner-bracket top-right"></div>
+                    <div class="corner-bracket bottom-left"></div>
+                    <div class="corner-bracket bottom-right"></div>
+
+                    <!-- Centered status banner -->
+                    <div class="video-overlay-msg" id="video-overlay-msg">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                        <span>Configuring Sensor...</span>
+                    </div>
+                </div>
+                
+                <div class="viewport-footer">
+                    <div class="camera-controls">
+                        <button class="btn btn-secondary" id="btn-toggle-camera">
+                            <i class="fa-solid fa-video-slash"></i> Pause Feed
+                        </button>
+                        <button class="btn btn-secondary" id="btn-switch-detector">
+                            <i class="fa-solid fa-bolt"></i> Low Latency Mode
+                        </button>
+                    </div>
+                    <div class="sensor-indicator">
+                        <i class="fa-solid fa-circle-nodes text-success"></i> Secure Sandbox Processing
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Dashboard Controls -->
+            <section class="console-card">
+                <div class="tabs-nav">
+                    <button class="tab-btn active" id="tab-scan" data-tab="pane-scan">
+                        <i class="fa-solid fa-radar"></i> Active Scan
+                    </button>
+                    <button class="tab-btn" id="tab-register" data-tab="pane-register">
+                        <i class="fa-solid fa-user-plus"></i> Register Profile
+                    </button>
+                </div>
+
+                <div class="tab-content">
+                    <!-- Tab 1: Scanning Info -->
+                    <div class="tab-pane active" id="pane-scan">
+                        <div class="scan-status-card" id="scan-result-card">
+                            <div class="status-header">
+                                <div class="badge" id="scan-badge">NO SUBJECT</div>
+                                <div class="match-percentage" id="match-confidence"></div>
+                            </div>
+                            
+                            <div class="avatar-placeholder-large" id="scan-result-avatar">
+                                <i class="fa-solid fa-user-shield"></i>
+                            </div>
+
+                            <div class="result-details">
+                                <div class="detail-row">
+                                    <span class="label">Identified User</span>
+                                    <span class="value" id="res-name">—</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Secure ID / Phone</span>
+                                    <span class="value" id="res-phone">—</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Estimated Gender</span>
+                                    <span class="value" id="res-gender">—</span>
+                                </div>
+                                <div class="detail-row highlight">
+                                    <span class="label">Auto-Estimated Age</span>
+                                    <span class="value" id="res-age">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="console-actions">
+                            <button class="btn btn-primary w-full disabled" id="btn-console-register" disabled>
+                                <i class="fa-solid fa-user-plus"></i> Register Bounding Face
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Registration Panel -->
+                    <div class="tab-pane" id="pane-register">
+                        <form class="register-form" id="register-form" autocomplete="off">
+                            <div class="live-avatar-preview">
+                                <div class="avatar-crop-container">
+                                    <canvas id="register-avatar-canvas" width="120" height="120"></canvas>
+                                    <div class="avatar-fallback" id="register-avatar-fallback">
+                                        <i class="fa-solid fa-camera"></i>
+                                        <span>No Face Bounded</span>
+                                    </div>
+                                </div>
+                                <div class="preview-info">
+                                    <h3>Bio-Capture Preview</h3>
+                                    <p id="register-age-feedback">Scanning face...</p>
+                                    <div class="enrollment-progress-container">
+                                        <div class="enrollment-progress-bar" id="enrollment-progress" style="width: 0%;"></div>
+                                    </div>
+                                    <small id="enrollment-text" style="color: var(--color-text-secondary); font-size: 0.68rem; margin-top: 4px; display: block;">0/8 angles captured</small>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reg-name">Subject's Full Name</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-regular fa-user input-icon"></i>
+                                    <input type="text" id="reg-name" required placeholder="John Doe">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reg-phone">Secure Mobile Number</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-phone input-icon"></i>
+                                    <input type="tel" id="reg-phone" required placeholder="+1 (555) 000-0000" pattern="^[+]?[0-9\s\-()]{7,18}$">
+                                </div>
+                                <small class="form-help">Used as a unique identifier for biometric lookup.</small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-full" id="btn-submit-registration" disabled>
+                                <i class="fa-solid fa-fingerprint"></i> Capture & Save Biometrics
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Panel: Database Registry -->
+        <section class="database-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fa-solid fa-database text-primary"></i>
+                    <h2>Biometric Signature Registry</h2>
+                    <span class="count-badge" id="registry-count">0 profiles</span>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-danger-text btn-sm" id="btn-clear-all">
+                        <i class="fa-regular fa-trash-can"></i> Wipe Registry
+                    </button>
+                </div>
+            </div>
+            
+            <div class="registry-empty-state" id="registry-empty">
+                <i class="fa-solid fa-folder-open text-muted"></i>
+                <p>No biometric profiles registered yet.</p>
+                <span>Complete a registration to save biometric signatures locally.</span>
+            </div>
+            
+            <div class="registry-grid" id="registry-grid" style="display: none;">
+                <!-- Cards dynamically loaded here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Access Granted Full-Screen Overlay -->
+    <div class="access-overlay" id="access-overlay">
+        <div class="access-card">
+            <div class="access-glow"></div>
+            <div class="access-icon-container">
+                <div class="pulse-ring"></div>
+                <i class="fa-solid fa-circle-check access-icon"></i>
+            </div>
+            <h2 class="access-title">ACCESS GRANTED</h2>
+            <div class="access-divider"></div>
+            
+            <div class="access-details">
+                <div class="access-row">
+                    <span class="access-label">Subject</span>
+                    <span class="access-val" id="access-name">John Doe</span>
+                </div>
+                <div class="access-row">
+                    <span class="access-label">Authorized Time</span>
+                    <span class="access-val" id="access-time">12:00:00 AM</span>
+                </div>
+                <div class="access-row">
+                    <span class="access-label">Demographics</span>
+                    <span class="access-val" id="access-demographics">Male, 25 yrs</span>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" id="btn-close-access">Acknowledge</button>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast">
+        <i class="fa-solid fa-circle-check toast-icon" id="toast-icon"></i>
+        <span class="toast-message" id="toast-message">Action completed successfully</span>
+    </div>
+</body>
+</html>
